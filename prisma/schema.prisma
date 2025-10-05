@@ -7,11 +7,65 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Usuario {
+  uuid      BigInt     @id @default(autoincrement())
+  email     String     @unique @db.VarChar(80)
+  password  String     @db.VarChar(80)
+  nombre    String?    @db.VarChar(150)
+  personal  Personal[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+}
+
+model Personal {
+  uuid            BigInt             @id @default(autoincrement())
+  nombre          String             @db.VarChar(150)
+  telefono        String?            @db.VarChar(50)
+  fechaNacimiento DateTime?
+  fechaIngreso    DateTime?
+  usuarioId       BigInt?
+  departamentoId  BigInt?
+  usuario         Usuario?           @relation(fields: [usuarioId], references: [uuid])
+  departamento    Departamento?      @relation(fields: [departamentoId], references: [uuid])
+  proyectos       ProyectoPersonal[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  deletedAt       DateTime?
+}
+
+model Departamento {
+  uuid      BigInt     @id @default(autoincrement())
+  nombre    String     @db.VarChar(150)
+  personal  Personal[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+}
+
+model Proyecto {
+  uuid        BigInt             @id @default(autoincrement())
+  nombre      String             @db.VarChar(150)
+  fechaInicio DateTime?
+  fechaFin    DateTime?
+  estatus     String?            @db.VarChar(150)
+  personas    ProyectoPersonal[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  deletedAt   DateTime?
+}
+
+model ProyectoPersonal {
+  uuid       BigInt    @id @default(autoincrement())
+  avance     Int?
+  estatus    String?   @db.VarChar(150)
+  proyectoId BigInt
+  personalId BigInt
+  proyecto   Proyecto  @relation(fields: [proyectoId], references: [uuid])
+  personal   Personal  @relation(fields: [personalId], references: [uuid])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  @@unique([proyectoId, personalId])
 }
