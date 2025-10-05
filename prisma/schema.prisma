@@ -7,65 +7,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Usuario {
-  uuid      BigInt     @id @default(autoincrement())
-  email     String     @unique @db.VarChar(80)
-  password  String     @db.VarChar(80)
-  nombre    String?    @db.VarChar(150)
-  personal  Personal[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+model departamento {
+  uuid      BigInt    @id @default(autoincrement())
+  nombre    String    @db.VarChar(150)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
   deletedAt DateTime?
 }
 
-model Personal {
-  uuid            BigInt             @id @default(autoincrement())
-  nombre          String             @db.VarChar(150)
-  telefono        String?            @db.VarChar(50)
+model personal {
+  uuid            BigInt    @id @default(autoincrement())
+  nombre          String    @db.VarChar(150)
+  telefono        String?   @db.VarChar(50)
   fechaNacimiento DateTime?
   fechaIngreso    DateTime?
   usuarioId       BigInt?
   departamentoId  BigInt?
-  usuario         Usuario?           @relation(fields: [usuarioId], references: [uuid])
-  departamento    Departamento?      @relation(fields: [departamentoId], references: [uuid])
-  proyectos       ProyectoPersonal[]
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
   deletedAt       DateTime?
+
+  @@index([departamentoId], map: "Personal_departamentoId_fkey")
+  @@index([usuarioId], map: "Personal_usuarioId_fkey")
 }
 
-model Departamento {
-  uuid      BigInt     @id @default(autoincrement())
-  nombre    String     @db.VarChar(150)
-  personal  Personal[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  deletedAt DateTime?
-}
-
-model Proyecto {
-  uuid        BigInt             @id @default(autoincrement())
-  nombre      String             @db.VarChar(150)
+model proyecto {
+  uuid        BigInt    @id @default(autoincrement())
+  nombre      String    @db.VarChar(150)
   fechaInicio DateTime?
   fechaFin    DateTime?
-  estatus     String?            @db.VarChar(150)
-  personas    ProyectoPersonal[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  estatus     String?   @db.VarChar(150)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
   deletedAt   DateTime?
 }
 
-model ProyectoPersonal {
+model proyectopersonal {
   uuid       BigInt    @id @default(autoincrement())
   avance     Int?
   estatus    String?   @db.VarChar(150)
   proyectoId BigInt
   personalId BigInt
-  proyecto   Proyecto  @relation(fields: [proyectoId], references: [uuid])
-  personal   Personal  @relation(fields: [personalId], references: [uuid])
   createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  updatedAt  DateTime
   deletedAt  DateTime?
 
-  @@unique([proyectoId, personalId])
+  @@unique([proyectoId, personalId], map: "ProyectoPersonal_proyectoId_personalId_key")
+  @@index([personalId], map: "ProyectoPersonal_personalId_fkey")
+}
+
+model usuario {
+  uuid      BigInt    @id @default(autoincrement())
+  email     String    @unique(map: "Usuario_email_key") @db.VarChar(80)
+  password  String    @db.VarChar(80)
+  nombre    String?   @db.VarChar(150)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  deletedAt DateTime?
 }
