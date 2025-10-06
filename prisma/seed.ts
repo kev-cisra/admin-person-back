@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Starting seed for usuarios, departamentos y personal...');
 
+  await prisma.token.deleteMany();
   await prisma.proyectopersonal.deleteMany();
   await prisma.personal.deleteMany();
   await prisma.proyecto.deleteMany();

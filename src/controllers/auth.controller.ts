@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 import { hashPassword, verifyPassword } from '../utils/password';
+import { generateSessionToken, hashToken } from '../utils/token';
 
 function parseUuid(value: unknown): bigint | null {
   if (typeof value === 'number' && Number.isInteger(value)) {
@@ -56,15 +57,54 @@ export class AuthController {
 
       const { password: _password, ...safeUser } = user;
 
-      return res.json({ message: 'Login successful', user: safeUser });
+      const { token, secretHash, expiresAt } = generateSessionToken();
+
+      await prisma.token.create({
+        data: {
+          secretHash,
+          type: 'session',
+          expiresAt,
+          usuarioId: user.uuid,
+        },
+      });
+
+      return res.json({
+        message: 'Login successful',
+        user: safeUser,
+        token: {
+          value: token,
+          expiresAt: expiresAt.toISOString(),
+        },
+      });
     } catch (error) {
       console.error('Login error', error);
       return res.status(500).json({ message: 'Unable to login' });
     }
   }
 
-  static async logout(_req: Request, res: Response): Promise<Response> {
-    return res.json({ message: 'Logout successful' });
+  static async logout(req: Request, res: Response): Promise<Response> {
+    const { token } = req.body as { token?: string };
+
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+
+    try {
+      const secretHash = hashToken(token);
+      const result = await prisma.token.updateMany({
+        where: { secretHash, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      if (result.count === 0) {
+        return res.status(404).json({ message: 'Token not found or already revoked' });
+      }
+
+      return res.json({ message: 'Logout successful' });
+    } catch (error) {
+      console.error('Logout error', error);
+      return res.status(500).json({ message: 'Unable to logout' });
+    }
   }
 
   static async updatePassword(req: Request, res: Response): Promise<Response> {
@@ -159,6 +199,7 @@ export class AuthController {
             email,
             password: hashedPassword,
             nombre: usuarioNombre ?? personalNombre ?? null,
+            updatedAt: new Date(),
           },
         });
 
@@ -170,9 +211,7 @@ export class AuthController {
             fechaIngreso: parseDateValue(fechaIngreso),
             usuarioId: usuario.uuid,
             departamentoId: departamentoUuid ?? undefined,
-          },
-          include: {
-            departamento: true,
+            updatedAt: new Date(),
           },
         });
 

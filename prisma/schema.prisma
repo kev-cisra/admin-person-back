@@ -64,4 +64,32 @@ model usuario {
   createdAt DateTime  @default(now())
   updatedAt DateTime
   deletedAt DateTime?
+
+  tokens    token[]
+}
+
+enum TokenType {
+  api
+  refresh
+  reset_password
+  verify_email
+  magic_login
+  session
+  oauth_access
+}
+
+model token {
+  uuid       BigInt    @id @default(autoincrement())
+  secretHash String    @db.VarChar(255)
+  type       TokenType @default(session)
+  revokedAt  DateTime?
+  expiresAt  DateTime
+  deviceId   String?   @db.VarChar(255)
+  usuarioId  BigInt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  usuario usuario @relation(fields: [usuarioId], references: [uuid])
+
+  @@index([usuarioId], map: "Token_usuarioId_fkey")
 }
