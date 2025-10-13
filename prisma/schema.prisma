@@ -8,7 +8,8 @@ datasource db {
 }
 
 model departamento {
-  uuid      BigInt    @id @default(autoincrement())
+  id      BigInt    @id @default(autoincrement())
+  uuid    String    @default(uuid()) @unique
   nombre    String    @db.VarChar(150)
   createdAt DateTime  @default(now())
   updatedAt DateTime
@@ -16,23 +17,29 @@ model departamento {
 }
 
 model personal {
-  uuid            BigInt    @id @default(autoincrement())
-  nombre          String    @db.VarChar(150)
-  telefono        String?   @db.VarChar(50)
+  id            BigInt    @id @default(autoincrement())
+  uuid          String    @default(uuid()) @unique
+  nombre        String    @db.VarChar(150)
+  telefono      String?   @db.VarChar(50)
   fechaNacimiento DateTime?
   fechaIngreso    DateTime?
-  usuarioId       BigInt?
-  departamentoId  BigInt?
+  usuarioId       String?
+  JefeId         BigInt?   @map("JefeId")
+  departamentoId  String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime
   deletedAt       DateTime?
+  
+  personal   personal?  @relation("JefeSubordinados", fields: [JefeId], references: [id])
+  subordinados personal[] @relation("JefeSubordinados")
 
   @@index([departamentoId], map: "Personal_departamentoId_fkey")
   @@index([usuarioId], map: "Personal_usuarioId_fkey")
 }
 
 model proyecto {
-  uuid        BigInt    @id @default(autoincrement())
+  id          BigInt    @id @default(autoincrement())
+  uuid        String    @default(uuid()) @unique
   nombre      String    @db.VarChar(150)
   fechaInicio DateTime?
   fechaFin    DateTime?
@@ -43,7 +50,8 @@ model proyecto {
 }
 
 model proyectopersonal {
-  uuid       BigInt    @id @default(autoincrement())
+  id          BigInt    @id @default(autoincrement())
+  uuid        String    @default(uuid()) @unique
   avance     Int?
   estatus    String?   @db.VarChar(150)
   proyectoId BigInt
@@ -57,9 +65,10 @@ model proyectopersonal {
 }
 
 model usuario {
-  uuid      BigInt    @id @default(autoincrement())
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @default(uuid()) @unique
   email     String    @unique(map: "Usuario_email_key") @db.VarChar(80)
-  password  String    @db.VarChar(80)
+  password  String    @db.VarChar(255)
   nombre    String?   @db.VarChar(150)
   createdAt DateTime  @default(now())
   updatedAt DateTime
@@ -79,7 +88,8 @@ enum TokenType {
 }
 
 model token {
-  uuid       BigInt    @id @default(autoincrement())
+  id       BigInt    @id @default(autoincrement())
+  uuid     String    @default(uuid()) @unique
   secretHash String    @db.VarChar(255)
   type       TokenType @default(session)
   revokedAt  DateTime?
@@ -89,7 +99,7 @@ model token {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  usuario usuario @relation(fields: [usuarioId], references: [uuid])
+  usuario usuario @relation(fields: [usuarioId], references: [id])
 
   @@index([usuarioId], map: "Token_usuarioId_fkey")
 }

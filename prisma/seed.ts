@@ -19,17 +19,41 @@ async function main() {
         nombre: 'Recursos Humanos',
         updatedAt: new Date(),
       },
+      select: {
+        id: true,
+        uuid: true,
+        nombre: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
     }),
     prisma.departamento.create({
       data: {
         nombre: 'Tecnología de la Información',
         updatedAt: new Date(),
       },
+      select: {
+        id: true,
+        uuid: true,
+        nombre: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
     }),
     prisma.departamento.create({
       data: {
         nombre: 'Finanzas',
         updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        uuid: true,
+        nombre: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
       },
     }),
   ]);
@@ -53,6 +77,16 @@ async function main() {
         nombre: 'Administrador General',
         updatedAt: new Date(),
       },
+      select: {
+        id: true,
+        uuid: true,
+        email: true,
+        password: true,
+        nombre: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
     }),
     prisma.usuario.create({
       data: {
@@ -62,6 +96,16 @@ async function main() {
         nombre: 'Juan Pérez',
         updatedAt: new Date(),
       },
+      select: {
+        id: true,
+        uuid: true,
+        email: true,
+        password: true,
+        nombre: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
     }),
     prisma.usuario.create({
       data: {
@@ -70,6 +114,16 @@ async function main() {
         password: mariaPassword,
         nombre: 'María García',
         updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        uuid: true,
+        email: true,
+        password: true,
+        nombre: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
       },
     }),
   ]);
