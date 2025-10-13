@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { generateSessionToken, hashToken } from '../utils/token';
+import { randomUUID } from 'crypto';
 
 function parseUuid(value: unknown): bigint | null {
   if (typeof value === 'number' && Number.isInteger(value)) {
@@ -38,38 +39,57 @@ export class AuthController {
   static async login(req: Request, res: Response): Promise<Response> {
     const { email, password } = req.body as { email?: string; password?: string };
 
+    // Validar que se proporcionen email y contraseña
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+      return res.status(400).json({ message: 'La contraseña y el email son requeridos' });
     }
 
     try {
-      const user = await prisma.usuario.findUnique({ where: { email } });
-
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+      // Buscar el usuario por email (traer sólo campos necesarios para evitar serializar BigInt)
+      // Primero traer solo id y password para verificar la contraseña
+      const rawUser = await prisma.usuario.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          password: true,
+        },
+      });
+      
+      if (!rawUser) {
+        return res.status(401).json({ message: 'Credenciales inválidas' });
       }
 
-      const isValidPassword = await verifyPassword(password, user.password);
-
+      // Verificar la contraseña
+      const isValidPassword = await verifyPassword(password, rawUser.password);
       if (!isValidPassword) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Contraseña inválida' });
       }
-
-      const { password: _password, ...safeUser } = user;
-
+      // Obtener safeUser separado (sin id ni password) para devolver al cliente
+      const safeUser = await prisma.usuario.findUnique({
+        where: { id: rawUser!.id },
+        select: {
+          uuid: true,
+          email: true,
+          nombre: true,
+        },
+      });
+      
+      // Generar un token de sesión
       const { token, secretHash, expiresAt } = generateSessionToken();
 
+      // Almacenar el token en la base de datos (generar uuid y usar usuario.uuid)
       await prisma.token.create({
         data: {
+          uuid: randomUUID(),
           secretHash,
           type: 'session',
           expiresAt,
-          usuarioId: user.uuid,
+          usuarioId: rawUser!.id,
         },
       });
 
       return res.json({
-        message: 'Login successful',
+        message: 'Logeo exitoso',
         user: safeUser,
         token: {
           value: token,
@@ -78,7 +98,7 @@ export class AuthController {
       });
     } catch (error) {
       console.error('Login error', error);
-      return res.status(500).json({ message: 'Unable to login' });
+      return res.status(500).json({ message: 'Error interno del servidor' });
     }
   }
 
@@ -123,7 +143,7 @@ export class AuthController {
     try {
       const hashedPassword = await hashPassword(newPassword);
       const user = await prisma.usuario.update({
-        where: { uuid: parsedUserId },
+        where: { id: parsedUserId },
         data: { password: hashedPassword },
       });
 
@@ -151,7 +171,7 @@ export class AuthController {
 
     try {
       const user = await prisma.usuario.update({
-        where: { uuid: parsedUserId },
+        where: { id: parsedUserId },
         data: { email: newEmail },
       });
 
@@ -191,7 +211,10 @@ export class AuthController {
 
     try {
       const hashedPassword = await hashPassword(password);
-      const departamentoUuid = parseUuid(departamentoId ?? null);
+      const departamentoIdStr =
+        typeof departamentoId === 'number'
+          ? String(departamentoId)
+          : (typeof departamentoId === 'string' && departamentoId.trim() !== '' ? departamentoId : undefined);
 
       const result = await prisma.$transaction(async (tx) => {
         const usuario = await tx.usuario.create({
@@ -210,7 +233,7 @@ export class AuthController {
             fechaNacimiento: parseDateValue(fechaNacimiento),
             fechaIngreso: parseDateValue(fechaIngreso),
             usuarioId: usuario.uuid,
-            departamentoId: departamentoUuid ?? undefined,
+            departamentoId: departamentoIdStr ?? undefined,
             updatedAt: new Date(),
           },
         });
